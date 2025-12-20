@@ -1,0 +1,14 @@
+# Temporary WAV files during processing
+.tmp/
+
+# Compiled JavaScript
+dist/
+
+# Dependencies
+node_modules/
+
+# macOS system files
+.DS_Store
+
+# Optional audio input folder
+input/

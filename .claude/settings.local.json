@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prettier:*)",
+      "Bash(npm run format:*)",
+      "Bash(ls:*)",
+      "Bash(node dist/cli.js:*)"
+    ]
+  }
+}

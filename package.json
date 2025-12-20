@@ -1,0 +1,41 @@
+{
+  "name": "audio-note-transcripts",
+  "version": "0.1.0",
+  "description": "On-device audio transcription using whisper.cpp - converts voice memos to searchable VTT transcripts",
+  "type": "module",
+  "bin": {
+    "transcribe": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilyabezdelev/audio-note-transcripts.git"
+  },
+  "keywords": [
+    "whisper",
+    "transcription",
+    "audio",
+    "vtt",
+    "voice-memo"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ilyabezdelev/audio-note-transcripts/issues"
+  },
+  "homepage": "https://github.com/ilyabezdelev/audio-note-transcripts#readme",
+  "dependencies": {
+    "commander": "^14.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
