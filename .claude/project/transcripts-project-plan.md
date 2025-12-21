@@ -11,7 +11,7 @@ Create an on-device audio transcription system that converts voice memos from iP
 - **Speed**: Fast enough for regular use on M1 MacBook Pro
 - **Format**: Markdown output (default) or VTT output (optional) with timestamps and metadata
 - **Readability**: Markdown format merges segments into longer paragraphs (3-5 lines) for easier reading
-- **Audio Sources**: iPhone voice memos (M4A), Telegram voice messages (OGG), general MP3
+- **Audio Sources**: Any format ffmpeg supports (M4A, MP4, OGG, MP3, WAV, AAC, FLAC, WEBM, MOV, etc.)
 
 ## Technology Stack
 
@@ -29,7 +29,7 @@ Create an on-device audio transcription system that converts voice memos from iP
 - ✅ Free and open source
 - ✅ Metal acceleration for M1 (~12 seconds per minute of audio)
 - ✅ Best-in-class accuracy (0.3% CER, 1% WER)
-- ✅ Supports M4A, OGG, MP3 via ffmpeg conversion
+- ✅ Supports any audio/video format via ffmpeg conversion (M4A, MP4, OGG, MP3, WAV, AAC, FLAC, WEBM, MOV, etc.)
 - ✅ Multiple model options (trade speed vs accuracy)
 
 **Why TypeScript/Node:**
@@ -45,7 +45,6 @@ Create an on-device audio transcription system that converts voice memos from iP
 
 - ❌ Pure bash: Hard to maintain, poor error handling, difficult VTT parsing
 - ❌ Apple Speech API (hear): No VTT support, requires custom timestamp estimation
-- ❌ speechischeap.com: Not free, requires API integration and internet
 
 ## Repository Structure
 
@@ -530,10 +529,8 @@ npx tsx src/cli.ts input/sample.m4a --model base
 npx tsx src/cli.ts /fake/file.m4a
 # Error: Input file not found or not readable: /fake/file.m4a
 
-# ✅ Unsupported format shows helpful message
-npx tsx src/cli.ts test.txt
-# Error: Unsupported audio format: .txt
-# Supported formats: .m4a, .ogg, .mp3, .wav
+# ✅ Unsupported format fails at ffmpeg stage with clear error
+# (No validation - ffmpeg handles all format support)
 
 # ✅ Missing model shows installation instructions
 npx tsx src/cli.ts input/sample.m4a --model-path /fake/model.bin
@@ -548,7 +545,7 @@ npx tsx src/cli.ts input/sample.m4a --model-path /fake/model.bin
 - ✅ All check functions throw descriptive errors
 - ✅ Error messages clearly explain what's missing and how to fix it
 - ✅ Tilde expansion works for model paths
-- ✅ Supported audio formats validated (.m4a, .ogg, .mp3, .wav)
+- ✅ File existence validated (format support delegated to ffmpeg)
 
 ---
 
@@ -1261,8 +1258,8 @@ The application is split into focused modules:
 
 - Coordinates the complete transcription pipeline:
   1. Validates dependencies (whisper-cli, ffmpeg, model)
-  2. Validates input file (exists, supported format)
-  3. Converts audio to 16kHz WAV
+  2. Validates input file (exists and is readable)
+  3. Converts audio/video to 16kHz WAV (ffmpeg handles format detection)
   4. Runs whisper-cli transcription (always creates VTT)
   5. Processes output based on format:
      - VTT: Injects metadata into VTT
@@ -1276,7 +1273,7 @@ The application is split into focused modules:
 - `checkWhisperCli()`: Verify whisper-cli command exists
 - `checkFfmpeg()`: Verify ffmpeg command exists
 - `checkModel(path)`: Verify model file exists and is readable
-- `validateInputFile(path)`: Check file exists and format is supported
+- `validateInputFile(path)`: Check file exists and is readable (format support handled by ffmpeg)
 
 ### `src/ffmpeg.ts` (Audio Conversion)
 
@@ -1329,6 +1326,34 @@ The application is split into focused modules:
 - Other shared types
 
 ## Recent Changes
+
+### Removed Format Validation (December 2025)
+
+**Decision**: Removed hardcoded audio format validation, letting ffmpeg handle all format support
+
+**Rationale**:
+
+- Hardcoded format lists are restrictive and require maintenance
+- ffmpeg supports hundreds of audio and video formats
+- Users want flexibility to transcribe MP4 videos, FLAC audio, etc.
+- ffmpeg provides clear error messages for unsupported formats
+- Simpler code with less validation logic
+
+**Implementation**:
+
+- Removed `SUPPORTED_AUDIO_FORMATS` constant from types.ts
+- Updated `validateInputFile()` to only check file existence/readability
+- ffmpeg automatically handles format detection and conversion
+- All video formats now supported (MP4, MOV, WEBM, etc.) - audio is extracted
+
+**Impact**:
+
+- Users can now transcribe any format ffmpeg supports (300+ codecs)
+- MP4 video files can be transcribed directly
+- Simpler codebase with less validation code
+- Better error messages from ffmpeg for truly unsupported formats
+
+---
 
 ### Format Change: Markdown as Default (December 2025)
 

@@ -30,7 +30,3 @@ export interface TranscriptSegment {
   timestamp: string;
   text: string;
 }
-
-export const SUPPORTED_AUDIO_FORMATS = ['.m4a', '.ogg', '.mp3', '.wav'] as const;
-
-export type AudioFormat = (typeof SUPPORTED_AUDIO_FORMATS)[number];

@@ -1,8 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { access, constants } from 'fs/promises';
-import { extname } from 'path';
-import { SUPPORTED_AUDIO_FORMATS } from './types.js';
 
 const execAsync = promisify(exec);
 
@@ -57,23 +55,14 @@ export async function checkModel(modelPath: string): Promise<void> {
 }
 
 /**
- * Validate input file exists and has supported format
+ * Validate input file exists and is readable
+ * Format validation is handled by ffmpeg - any format ffmpeg supports will work
  */
 export async function validateInputFile(filePath: string): Promise<void> {
-  // Check if file exists and is readable
   try {
     await access(filePath, constants.R_OK);
   } catch (error) {
     throw new Error(`Input file not found or not readable: ${filePath}`);
-  }
-
-  // Check file extension
-  const ext = extname(filePath).toLowerCase();
-  if (!SUPPORTED_AUDIO_FORMATS.includes(ext as any)) {
-    throw new Error(
-      `Unsupported audio format: ${ext}\n` +
-        `Supported formats: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`
-    );
   }
 }
 

@@ -121,10 +121,16 @@ Options:
 
 ### Supported Audio Formats
 
+This tool supports any audio or video format that ffmpeg can read, including:
+
 - `.m4a` - iPhone voice memos
+- `.mp4` - Video files (audio will be extracted)
 - `.ogg` - Telegram voice messages
 - `.mp3` - General audio files
 - `.wav` - Uncompressed audio
+- `.aac`, `.flac`, `.webm`, `.mov`, and many more
+
+If ffmpeg can decode it, this tool can transcribe it.
 
 ## Performance
 
@@ -196,6 +202,9 @@ Engine: whisper.cpp
 # iPhone voice memo (markdown output)
 transcribe ~/Desktop/voice-memo.m4a
 
+# Video file (extracts audio automatically)
+transcribe ~/Desktop/presentation.mp4
+
 # Telegram voice message with Russian language
 transcribe ~/Downloads/voice-message.ogg --language ru
 
@@ -208,6 +217,40 @@ transcribe ~/Desktop/notes.m4a --model base
 # Markdown output with custom location
 transcribe ~/Desktop/recording.m4a --output ~/Documents/transcripts/recording.md
 ```
+
+## How It Works
+
+### Processing Pipeline
+
+1. **Validation** - Checks for whisper-cli, ffmpeg, and model file
+2. **Conversion** - Converts audio/video to 16kHz mono WAV using ffmpeg
+3. **Transcription** - Runs whisper.cpp on the WAV file
+4. **Processing** - Converts to markdown (default) or adds metadata to VTT
+5. **Cleanup** - Removes temporary files automatically
+
+### Temporary Files
+
+The CLI creates temporary files in a `.tmp/` directory in your **current working directory** (where you run the command from):
+
+```bash
+# If you run from your home directory:
+cd ~
+transcribe ~/Desktop/video.mp4
+
+# Temporary files created in:
+~/.tmp/video-1234567890.wav         # Temporary WAV (auto-deleted)
+~/.tmp/video-1234567890.wav.vtt     # Temporary VTT (auto-deleted for markdown output)
+
+# Final output:
+~/Desktop/video.md                  # Saved next to input file
+```
+
+**Important notes:**
+
+- Temporary files are automatically cleaned up after successful transcription
+- If transcription fails, temporary files may remain in `.tmp/` for debugging
+- The `.tmp/` directory is created where you run the command, not in the project directory
+- You can manually delete `.tmp/` if needed: `rm -rf .tmp/`
 
 ## Development
 
