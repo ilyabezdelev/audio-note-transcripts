@@ -1327,6 +1327,70 @@ The application is split into focused modules:
 
 ## Recent Changes
 
+### Removed .tmp Directory - Use Working Directory with Nanoid Temp Files (December 2025)
+
+**Decision**: Remove `.tmp/` directory and create temporary files in current working directory with nanoid suffixes
+
+**Rationale**:
+
+- `.tmp/` directory creates an unnecessary project artifact
+- Temporary files in working directory are easier to debug
+- Nanoid suffixes prevent filename collisions (safe for parallel transcriptions)
+- Simpler project structure without hidden directories
+- Cleanup happens in same directory as creation (simpler logic)
+- Nanoid is more efficient than UUID and can generate IDs of specific length without slicing
+
+**Implementation**:
+
+- Use `nanoid` package with `customAlphabet` to generate 6-character alphanumeric IDs
+- Temporary files named: `{original-basename}-{nanoid}.wav` and `{original-basename}-{nanoid}.wav.vtt`
+- Files created in `process.cwd()` instead of `.tmp/`
+- Cleanup logic removes temp files from working directory
+- Removed `.tmp/` directory and related mkdir commands
+- Updated `.gitignore` to remove `.tmp/` entry
+
+**ID Generation**:
+
+```typescript
+import { customAlphabet } from 'nanoid';
+import { alphanumeric } from 'nanoid-dictionary';
+
+export function generateShortId() {
+  const nanoid = customAlphabet(alphanumeric, 6);
+  return nanoid();
+}
+```
+
+**Example**:
+
+```bash
+# Input: ~/Desktop/meeting.m4a
+# Working directory: ~/Documents
+
+# Temp files created in ~/Documents:
+meeting-a1b2c3.wav
+meeting-a1b2c3.wav.vtt
+
+# Final output: ~/Desktop/meeting.md
+# Temp files deleted after processing
+```
+
+**Impact**:
+
+- ✅ No hidden `.tmp/` directory in project
+- ✅ Nanoid ensures no filename collisions
+- ✅ More efficient ID generation than UUID
+- ✅ Temp files briefly visible in working directory (transparent debugging)
+- ✅ Orphaned files (if cleanup fails) are easily identifiable by pattern
+- ⚠️ Breaking change: Users with `.tmp/` in their `.gitignore` should update (though temp files are auto-cleaned)
+
+**Dependencies Added**:
+
+- `nanoid` package for generating unique identifiers
+- `nanoid-dictionary` package for alphanumeric character set
+
+---
+
 ### Removed Format Validation (December 2025)
 
 **Decision**: Removed hardcoded audio format validation, letting ffmpeg handle all format support

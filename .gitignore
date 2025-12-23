@@ -1,6 +1,3 @@
-# Temporary WAV files during processing
-.tmp/
-
 # Compiled JavaScript
 dist/
 

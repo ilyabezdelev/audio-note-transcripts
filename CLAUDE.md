@@ -4,13 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Audio note transcripts - a project for transcribing audio notes.
+Audio note transcripts - an on-device audio transcription system that converts voice memos (iPhone, Telegram) into searchable markdown or VTT transcripts with timestamps.
 
-## Current State
+**Key Features:**
 
-This is a newly initialized repository. No build system, dependencies, or code structure has been established yet.
+- On-device processing using whisper.cpp (complete privacy, no cloud APIs)
+- TypeScript + Node.js application layer
+- Supports any audio/video format ffmpeg handles (M4A, MP4, OGG, MP3, WAV, etc.)
+- Default markdown output with merged paragraphs for readability
+- Optional VTT output with precise timestamps
+- Global CLI tool: `transcribe <input-file> [options]`
 
-When implementing features in this repository, consider:
+**Technology Stack:**
 
-- The project name suggests audio processing and transcription functionality
-- Architecture decisions should be made based on the specific requirements as they are defined
+- Transcription: whisper.cpp with large-v3-turbo model
+- Runtime: Node.js + TypeScript
+- CLI: Commander for argument parsing
+- Audio conversion: ffmpeg
+
+## Detailed Documentation
+
+For complete project documentation, implementation phases, architecture details, and usage examples, see:
+
+`.claude/project/transcripts-project-plan.md`
+
+This comprehensive document includes:
+
+- Full technology stack rationale
+- Installation instructions
+- Module architecture
+- Implementation phases and validation results
+- Performance benchmarks
+- Output format specifications

@@ -1,11 +1,45 @@
-import { basename, dirname, extname, join } from 'path';
 import { mkdir, unlink } from 'fs/promises';
-import { checkWhisperCli, checkFfmpeg, checkModel, validateInputFile } from './validate.js';
+import { customAlphabet } from 'nanoid';
+import { alphanumeric } from 'nanoid-dictionary';
+import { basename, dirname, extname, join } from 'path';
 import { convertToWav } from './ffmpeg.js';
-import { transcribe as runWhisper } from './whisper.js';
-import { addMetadata, getAudioCreationDate } from './vtt.js';
 import { convertToMarkdown } from './markdown.js';
 import { TranscriptionConfig, TranscriptionResult } from './types.js';
+import { checkFfmpeg, checkModel, checkWhisperCli, validateInputFile } from './validate.js';
+import { addMetadata, getAudioCreationDate } from './vtt.js';
+import { transcribe as runWhisper } from './whisper.js';
+
+/**
+ * Generate a short unique ID for temporary files
+ * @returns 6-character alphanumeric ID
+ */
+function generateShortId(): string {
+  const nanoid = customAlphabet(alphanumeric, 6);
+  return nanoid();
+}
+
+/**
+ * Clean up temporary files
+ * @param tempFiles Array of temporary file paths (null values are filtered out)
+ * @param showMessages Whether to log success/warning messages
+ */
+async function cleanupTempFiles(tempFiles: (string | null)[], showMessages = false): Promise<void> {
+  const filesToCleanup = tempFiles.filter(Boolean) as string[];
+  if (filesToCleanup.length === 0) {
+    return;
+  }
+
+  try {
+    await Promise.all(filesToCleanup.map((file) => unlink(file)));
+    if (showMessages) {
+      console.log('✓ Temporary files cleaned up');
+    }
+  } catch (error) {
+    if (showMessages) {
+      console.warn('Warning: Failed to clean up some temporary files:', filesToCleanup);
+    }
+  }
+}
 
 /**
  * Transcribe audio file to markdown or VTT format
@@ -19,6 +53,7 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResult> {
   const startTime = Date.now();
   let tempWavPath: string | null = null;
+  let tempVttPath: string | null = null;
 
   try {
     // Step 1: Validate dependencies
@@ -48,10 +83,8 @@ export async function transcribeAudio(
     } else {
       console.log(`Converting ${inputExt} to WAV format...`);
       const inputBasename = basename(inputPath, inputExt);
-      tempWavPath = join('.tmp', `${inputBasename}-${Date.now()}.wav`);
-
-      // Ensure .tmp directory exists
-      await mkdir('.tmp', { recursive: true });
+      const shortId = generateShortId();
+      tempWavPath = join(process.cwd(), `${inputBasename}-${shortId}.wav`);
 
       audioDuration = await convertToWav(inputPath, tempWavPath);
       console.log(`✓ Conversion complete (${audioDuration.toFixed(2)}s)`);
@@ -61,7 +94,7 @@ export async function transcribeAudio(
 
     // Step 4: Run whisper.cpp (always creates VTT)
     console.log(`Transcribing with ${config.modelName} model (language: ${config.language})...`);
-    const tempOutputDir = '.tmp';
+    const tempOutputDir = process.cwd();
     const vttPath = await runWhisper(
       wavPath,
       config.modelPath,
@@ -69,6 +102,7 @@ export async function transcribeAudio(
       tempOutputDir,
       config.language
     );
+    tempVttPath = vttPath; // Track for cleanup
     console.log('✓ Transcription complete');
     console.log();
 
@@ -89,13 +123,13 @@ export async function transcribeAudio(
       console.log('Adding metadata to VTT...');
       await addMetadata(vttPath, metadata);
       console.log('✓ Metadata added');
+      // VTT is our final output, don't track for cleanup
+      tempVttPath = null;
     } else {
       // Convert VTT to Markdown
       console.log('Converting to markdown format...');
       const mdPath = vttPath.replace(/\.vtt$/, '.md');
       await convertToMarkdown(vttPath, mdPath, metadata);
-      // Clean up VTT file
-      await unlink(vttPath);
       processedOutputPath = mdPath;
       console.log('✓ Markdown created');
     }
@@ -138,14 +172,7 @@ export async function transcribeAudio(
     }
 
     // Step 7: Clean up temporary files
-    if (tempWavPath) {
-      try {
-        await unlink(tempWavPath);
-        console.log('✓ Temporary files cleaned up');
-      } catch (error) {
-        console.warn('Warning: Failed to clean up temporary WAV file:', tempWavPath);
-      }
-    }
+    await cleanupTempFiles([tempWavPath, tempVttPath], true);
 
     const endTime = Date.now();
     const processingTime = (endTime - startTime) / 1000;
@@ -162,13 +189,7 @@ export async function transcribeAudio(
     };
   } catch (error) {
     // Clean up temporary files on error
-    if (tempWavPath) {
-      try {
-        await unlink(tempWavPath);
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
+    await cleanupTempFiles([tempWavPath, tempVttPath]);
 
     // Re-throw the error
     throw error;
