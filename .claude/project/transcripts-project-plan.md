@@ -1327,6 +1327,47 @@ The application is split into focused modules:
 
 ## Recent Changes
 
+### Fixed Tilde Expansion in File Paths (December 2025)
+
+**Issue**: Tilde (`~`) in file paths was not being expanded to the home directory, causing file-not-found errors when using paths like `~/Downloads/file.m4a`.
+
+**Problem**:
+
+- Node.js's `path.resolve()` doesn't expand tilde - it treats `~` as a literal character
+- Commands like `transcribe "~/Downloads/file.m4a"` would fail with path resolution errors
+- The path would be resolved relative to current working directory instead of home directory
+
+**Implementation**:
+
+- Added `expandTilde()` helper function in `src/cli.ts` using `os.homedir()`
+- Applied tilde expansion to input file paths before resolution
+- Applied tilde expansion to output file paths before resolution
+- Updated `src/validate.ts` to use `os.homedir()` instead of `process.env.HOME` for better cross-platform support
+
+**Code Changes**:
+
+```typescript
+function expandTilde(filePath: string): string {
+  if (filePath.startsWith('~')) {
+    return filePath.replace(/^~/, homedir());
+  }
+  return filePath;
+}
+
+// Applied before path resolution
+const inputPath = resolve(expandTilde(input));
+const outputPath = options.output ? resolve(expandTilde(options.output)) : undefined;
+```
+
+**Impact**:
+
+- ✅ Tilde paths now work correctly: `transcribe "~/Downloads/file.m4a"`
+- ✅ Better cross-platform support using `os.homedir()`
+- ✅ Consistent behavior with standard CLI conventions
+- ✅ No breaking changes - absolute and relative paths still work as before
+
+---
+
 ### Removed .tmp Directory - Use Working Directory with Nanoid Temp Files (December 2025)
 
 **Decision**: Remove `.tmp/` directory and create temporary files in current working directory with nanoid suffixes

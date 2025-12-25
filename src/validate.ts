@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { access, constants } from 'fs/promises';
+import { homedir } from 'os';
 
 const execAsync = promisify(exec);
 
@@ -39,7 +40,7 @@ export async function checkFfmpeg(): Promise<void> {
  */
 export async function checkModel(modelPath: string): Promise<void> {
   // Expand ~ to home directory
-  const expandedPath = modelPath.replace(/^~/, process.env.HOME || '~');
+  const expandedPath = modelPath.replace(/^~/, homedir());
 
   try {
     await access(expandedPath, constants.R_OK);

@@ -3,8 +3,16 @@
 import { Command } from 'commander';
 import { transcribeAudio } from './transcribe.js';
 import { resolve } from 'path';
+import { homedir } from 'os';
 
 const program = new Command();
+
+function expandTilde(filePath: string): string {
+  if (filePath.startsWith('~')) {
+    return filePath.replace(/^~/, homedir());
+  }
+  return filePath;
+}
 
 program
   .name('transcribe')
@@ -18,14 +26,14 @@ program
   .option('--format <type>', 'Output format (markdown, vtt)', 'markdown')
   .action(async (input, options) => {
     try {
-      // Resolve input path to absolute path
-      const inputPath = resolve(input);
+      // Expand tilde and resolve input path to absolute path
+      const inputPath = resolve(expandTilde(input));
 
       // Determine model path
       const modelPath = options.modelPath || `~/.whisper-models/ggml-${options.model}.bin`;
 
-      // Resolve output path if provided
-      const outputPath = options.output ? resolve(options.output) : undefined;
+      // Expand tilde and resolve output path if provided
+      const outputPath = options.output ? resolve(expandTilde(options.output)) : undefined;
 
       // Validate format
       const format = options.format.toLowerCase();
