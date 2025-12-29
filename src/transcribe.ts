@@ -1,4 +1,4 @@
-import { mkdir, unlink } from 'fs/promises';
+import { access, mkdir, unlink } from 'fs/promises';
 import { customAlphabet } from 'nanoid';
 import { alphanumeric } from 'nanoid-dictionary';
 import { basename, dirname, extname, join } from 'path';
@@ -16,6 +16,46 @@ import { transcribe as runWhisper } from './whisper.js';
 function generateShortId(): string {
   const nanoid = customAlphabet(alphanumeric, 6);
   return nanoid();
+}
+
+/**
+ * Generate a unique file path that doesn't collide with existing files
+ * @param directory Directory where file will be created
+ * @param baseName Base name for the file (without extension)
+ * @param extension File extension (e.g., '.wav')
+ * @param maxRetries Maximum number of attempts to find unique name
+ * @returns Unique file path
+ */
+async function generateUniqueFilePath(
+  directory: string,
+  baseName: string,
+  extension: string,
+  maxRetries: number = 100
+): Promise<string> {
+  for (let i = 0; i < maxRetries; i++) {
+    const shortId = generateShortId();
+    const filePath = join(directory, `${baseName}-${shortId}${extension}`);
+
+    try {
+      // Try to access the file
+      await access(filePath);
+      // If we get here, file exists - continue to next iteration
+      continue;
+    } catch (error: any) {
+      // Check if error is because file doesn't exist
+      if (error.code === 'ENOENT') {
+        // File doesn't exist, we can use this path
+        return filePath;
+      }
+      // Some other error (permissions, etc.) - throw it
+      throw error;
+    }
+  }
+
+  throw new Error(
+    `Failed to generate unique filename after ${maxRetries} attempts. ` +
+      `Please check the directory: ${directory}`
+  );
 }
 
 /**
@@ -72,6 +112,7 @@ export async function transcribeAudio(
 
     // Step 3: Convert audio to WAV (if not already WAV)
     const inputExt = extname(inputPath).toLowerCase();
+    const inputDir = dirname(inputPath);
     let wavPath: string;
     let audioDuration = 0;
 
@@ -83,8 +124,7 @@ export async function transcribeAudio(
     } else {
       console.log(`Converting ${inputExt} to WAV format...`);
       const inputBasename = basename(inputPath, inputExt);
-      const shortId = generateShortId();
-      tempWavPath = join(process.cwd(), `${inputBasename}-${shortId}.wav`);
+      tempWavPath = await generateUniqueFilePath(inputDir, inputBasename, '.wav');
 
       audioDuration = await convertToWav(inputPath, tempWavPath);
       console.log(`✓ Conversion complete (${audioDuration.toFixed(2)}s)`);
@@ -94,7 +134,7 @@ export async function transcribeAudio(
 
     // Step 4: Run whisper.cpp (always creates VTT)
     console.log(`Transcribing with ${config.modelName} model (language: ${config.language})...`);
-    const tempOutputDir = process.cwd();
+    const tempOutputDir = inputDir;
     const vttPath = await runWhisper(
       wavPath,
       config.modelPath,

@@ -230,16 +230,15 @@ transcribe ~/Desktop/recording.m4a --output ~/Documents/transcripts/recording.md
 
 ### Temporary Files
 
-The CLI creates temporary files in a `.tmp/` directory in your **current working directory** (where you run the command from):
+The CLI creates temporary files in the **same directory as your input audio file**:
 
 ```bash
-# If you run from your home directory:
-cd ~
+# Example: transcribing a file on your Desktop
 transcribe ~/Desktop/video.mp4
 
-# Temporary files created in:
-~/.tmp/video-1234567890.wav         # Temporary WAV (auto-deleted)
-~/.tmp/video-1234567890.wav.vtt     # Temporary VTT (auto-deleted for markdown output)
+# Temporary files created in ~/Desktop/:
+~/Desktop/video-a1b2c3.wav         # Temporary WAV (auto-deleted)
+~/Desktop/video-a1b2c3.wav.vtt     # Temporary VTT (auto-deleted for markdown output)
 
 # Final output:
 ~/Desktop/video.md                  # Saved next to input file
@@ -247,10 +246,11 @@ transcribe ~/Desktop/video.mp4
 
 **Important notes:**
 
+- Temporary files use 6-character unique IDs (nanoid) to prevent collisions
+- If a file with the same ID exists, a new ID is automatically generated
 - Temporary files are automatically cleaned up after successful transcription
-- If transcription fails, temporary files may remain in `.tmp/` for debugging
-- The `.tmp/` directory is created where you run the command, not in the project directory
-- You can manually delete `.tmp/` if needed: `rm -rf .tmp/`
+- If transcription fails, temporary files may remain in the input directory for debugging
+- You can manually delete them by pattern: `rm ~/Desktop/*-??????.wav*` (6-character ID)
 
 ## Development
 

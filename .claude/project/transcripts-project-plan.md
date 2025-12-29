@@ -1432,6 +1432,74 @@ meeting-a1b2c3.wav.vtt
 
 ---
 
+### Temp Files Now Created in Input Directory (December 2025)
+
+**Decision**: Create temporary WAV and VTT files in the same directory as the input audio file (instead of current working directory)
+
+**Rationale**:
+
+- Easier to find and debug temp files when they're next to the original audio
+- More intuitive - all related files (input, temp, output) are in one place
+- Simplifies cleanup when transcription fails - user knows exactly where to look
+- Reduces confusion about "where did my temp files go?"
+
+**Implementation**:
+
+- Added `generateUniqueFilePath()` helper function with collision detection
+- Uses `fs.access()` to check if file exists before generating temp filename
+- Regenerates nanoid if collision detected (checks for ENOENT error code)
+- Throws error if collision after 100 attempts (prevents infinite loops)
+- Temp files created in `dirname(inputPath)` instead of `process.cwd()`
+
+**Collision Detection**:
+
+```typescript
+async function generateUniqueFilePath(
+  directory: string,
+  baseName: string,
+  extension: string,
+  maxRetries: number = 100
+): Promise<string> {
+  for (let i = 0; i < maxRetries; i++) {
+    const shortId = generateShortId();
+    const filePath = join(directory, `${baseName}-${shortId}${extension}`);
+
+    try {
+      await access(filePath);
+      continue; // File exists, try new ID
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return filePath; // File doesn't exist, use this path
+      }
+      throw error; // Permission or other error
+    }
+  }
+  throw new Error('Failed to generate unique filename after 100 attempts');
+}
+```
+
+**Example**:
+
+```bash
+# Input: ~/Desktop/meeting.m4a
+# Temp files created in ~/Desktop/ (same directory):
+~/Desktop/meeting-a1b2c3.wav
+~/Desktop/meeting-a1b2c3.wav.vtt
+
+# Final output: ~/Desktop/meeting.md
+# Temp files deleted after processing
+```
+
+**Impact**:
+
+- ✅ Temp files easier to find and debug
+- ✅ Collision detection prevents overwriting existing files
+- ✅ All related files in one directory (input, temp, output)
+- ✅ More intuitive user experience
+- ⚠️ Breaking change: Temp files no longer in working directory (now in input directory)
+
+---
+
 ### Removed Format Validation (December 2025)
 
 **Decision**: Removed hardcoded audio format validation, letting ffmpeg handle all format support
