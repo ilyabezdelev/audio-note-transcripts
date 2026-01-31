@@ -200,10 +200,29 @@ export async function transcribeAudio(
       await rename(processedOutputPath, finalOutputPath);
       console.log(`✓ Output saved to: ${finalOutputPath}`);
     } else {
-      // Move to same directory as input
+      // Move to same directory as input with -transcript suffix
       const inputDir = dirname(inputPath);
       const inputBasename = basename(inputPath, extname(inputPath));
-      finalOutputPath = join(inputDir, `${inputBasename}${outputExtension}`);
+      const baseOutputPath = join(inputDir, `${inputBasename}-transcript${outputExtension}`);
+
+      // Check if file already exists
+      try {
+        await access(baseOutputPath);
+        // File exists, generate unique path with short ID
+        finalOutputPath = await generateUniqueFilePath(
+          inputDir,
+          `${inputBasename}-transcript`,
+          outputExtension
+        );
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          // File doesn't exist, use base path
+          finalOutputPath = baseOutputPath;
+        } else {
+          // Some other error (permissions, etc.) - throw it
+          throw error;
+        }
+      }
 
       const { rename } = await import('fs/promises');
       await mkdir(dirname(finalOutputPath), { recursive: true });

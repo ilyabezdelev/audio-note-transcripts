@@ -84,7 +84,11 @@ transcribe --help
 # Transcribe with default settings (markdown format, large-v3-turbo model, auto language)
 transcribe ~/Desktop/recording.m4a
 
-# Output: ~/Desktop/recording.md (created in same directory)
+# Output: ~/Desktop/recording-transcript.md (created in same directory)
+
+# If you run it again, it won't overwrite:
+# Second run: ~/Desktop/recording-transcript-a1b2c3.md (with unique 6-char ID)
+# Third run: ~/Desktop/recording-transcript-x7y8z9.md (different unique ID)
 ```
 
 ### With Options
@@ -113,7 +117,7 @@ Options:
   -V, --version        output the version number
   --model <name>       Model to use (default: "large-v3-turbo")
   --model-path <path>  Path to model file (default: ~/.whisper-models/ggml-{model}.bin)
-  --output <path>      Output file path (default: same directory as input with .md/.vtt extension)
+  --output <path>      Output file path (default: same directory as input with -transcript suffix)
   --language <code>    Language code: ru, en, auto, etc. (default: "auto")
   --format <type>      Output format: markdown, vtt (default: "markdown")
   -h, --help           display help for command
@@ -201,20 +205,25 @@ Engine: whisper.cpp
 ```bash
 # iPhone voice memo (markdown output)
 transcribe ~/Desktop/voice-memo.m4a
+# Output: ~/Desktop/voice-memo-transcript.md
 
 # Video file (extracts audio automatically)
 transcribe ~/Desktop/presentation.mp4
+# Output: ~/Desktop/presentation-transcript.md
 
 # Telegram voice message with Russian language
 transcribe ~/Downloads/voice-message.ogg --language ru
+# Output: ~/Downloads/voice-message-transcript.md
 
 # Meeting recording with VTT format
-transcribe ~/Desktop/meeting.mp3 --format vtt --output ~/Documents/meetings/2025-12-20.vtt
+transcribe ~/Desktop/meeting.mp3 --format vtt
+# Output: ~/Desktop/meeting-transcript.vtt
 
 # Quick draft with base model
 transcribe ~/Desktop/notes.m4a --model base
+# Output: ~/Desktop/notes-transcript.md
 
-# Markdown output with custom location
+# Custom output location (overrides default naming)
 transcribe ~/Desktop/recording.m4a --output ~/Documents/transcripts/recording.md
 ```
 
@@ -228,9 +237,9 @@ transcribe ~/Desktop/recording.m4a --output ~/Documents/transcripts/recording.md
 4. **Processing** - Converts to markdown (default) or adds metadata to VTT
 5. **Cleanup** - Removes temporary files automatically
 
-### Temporary Files
+### File Naming and Collision Avoidance
 
-The CLI creates temporary files in the **same directory as your input audio file**:
+The CLI creates files in the **same directory as your input audio file** with smart collision avoidance:
 
 ```bash
 # Example: transcribing a file on your Desktop
@@ -240,11 +249,21 @@ transcribe ~/Desktop/video.mp4
 ~/Desktop/video-a1b2c3.wav         # Temporary WAV (auto-deleted)
 ~/Desktop/video-a1b2c3.wav.vtt     # Temporary VTT (auto-deleted for markdown output)
 
-# Final output:
-~/Desktop/video.md                  # Saved next to input file
+# Final output (first run):
+~/Desktop/video-transcript.md      # Uses -transcript suffix
+
+# Final output (second run):
+~/Desktop/video-transcript-x7y8z9.md  # Adds unique ID if file exists
 ```
 
-**Important notes:**
+**Output file naming:**
+
+- Default: `{filename}-transcript.{md|vtt}` (e.g., `recording-transcript.md`)
+- If that file already exists: `{filename}-transcript-{id}.{md|vtt}` (e.g., `recording-transcript-a1b2c3.md`)
+- This prevents accidental overwrites when transcribing the same file multiple times
+- Custom output path (via `--output`) always overwrites if the file exists
+
+**Temporary file handling:**
 
 - Temporary files use 6-character unique IDs (nanoid) to prevent collisions
 - If a file with the same ID exists, a new ID is automatically generated
