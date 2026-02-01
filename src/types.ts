@@ -7,6 +7,7 @@ export interface TranscriptionConfig {
   modelPath: string;
   language: string;
   format: OutputFormat;
+  suppressMetadata?: boolean;
 }
 
 export interface TranscriptionResult {

@@ -126,12 +126,14 @@ function mergeSegments(
  * @param outputPath Path where markdown file should be saved
  * @param metadata Metadata to include in markdown
  * @param minLines Minimum lines per paragraph (default: 3)
+ * @param suppressMetadata Suppress metadata and timestamps (default: false)
  */
 export async function convertToMarkdown(
   vttPath: string,
   outputPath: string,
   metadata: TranscriptMetadata,
-  minLines: number = 3
+  minLines: number = 3,
+  suppressMetadata: boolean = false
 ): Promise<void> {
   // Read VTT file
   const content = await readFile(vttPath, 'utf-8');
@@ -143,29 +145,38 @@ export async function convertToMarkdown(
   const mergedSegments = mergeSegments(segments, minLines);
 
   // Build markdown content
-  const markdown = [
-    '# Transcript',
-    '',
-    '## Metadata',
-    '',
-    `- **Source**: ${metadata.source}`,
-    `- **Created**: ${formatDate(metadata.created)}`,
-    `- **Duration**: ${formatDuration(metadata.duration)}`,
-    `- **Transcribed**: ${formatDate(metadata.transcribedAt)}`,
-    `- **Model**: ${metadata.model}`,
-    `- **Language**: ${metadata.language} (${getLanguageName(metadata.language)})`,
-    `- **Engine**: whisper.cpp`,
-    '',
-    '## Transcription',
-    '',
-  ];
+  const markdown: string[] = [];
 
-  // Add merged segments
-  for (const segment of mergedSegments) {
-    markdown.push(`**[${segment.timestamp}]**`);
+  if (suppressMetadata) {
+    // Just add the text without any metadata or timestamps
+    for (const segment of mergedSegments) {
+      markdown.push(segment.text);
+      markdown.push('');
+    }
+  } else {
+    // Include full metadata and timestamps
+    markdown.push('# Transcript');
     markdown.push('');
-    markdown.push(segment.text);
+    markdown.push('## Metadata');
     markdown.push('');
+    markdown.push(`- **Source**: ${metadata.source}`);
+    markdown.push(`- **Created**: ${formatDate(metadata.created)}`);
+    markdown.push(`- **Duration**: ${formatDuration(metadata.duration)}`);
+    markdown.push(`- **Transcribed**: ${formatDate(metadata.transcribedAt)}`);
+    markdown.push(`- **Model**: ${metadata.model}`);
+    markdown.push(`- **Language**: ${metadata.language} (${getLanguageName(metadata.language)})`);
+    markdown.push(`- **Engine**: whisper.cpp`);
+    markdown.push('');
+    markdown.push('## Transcription');
+    markdown.push('');
+
+    // Add merged segments with timestamps
+    for (const segment of mergedSegments) {
+      markdown.push(`**[${segment.timestamp}]**`);
+      markdown.push('');
+      markdown.push(segment.text);
+      markdown.push('');
+    }
   }
 
   // Write markdown file

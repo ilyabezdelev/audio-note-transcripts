@@ -24,6 +24,7 @@ program
   .option('--output <path>', 'Output file or directory path')
   .option('--language <code>', 'Language code (ru, en, auto)', 'auto')
   .option('--format <type>', 'Output format (markdown, vtt)', 'markdown')
+  .option('--suppress-metadata', 'Suppress metadata and timestamps in markdown output')
   .action(async (input, options) => {
     try {
       // Expand tilde and resolve input path to absolute path
@@ -49,6 +50,7 @@ program
         modelPath: modelPath,
         language: options.language,
         format: format,
+        suppressMetadata: options.suppressMetadata,
       });
 
       console.log();

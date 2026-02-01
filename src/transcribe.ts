@@ -169,7 +169,7 @@ export async function transcribeAudio(
       // Convert VTT to Markdown
       console.log('Converting to markdown format...');
       const mdPath = vttPath.replace(/\.vtt$/, '.md');
-      await convertToMarkdown(vttPath, mdPath, metadata);
+      await convertToMarkdown(vttPath, mdPath, metadata, 3, config.suppressMetadata);
       processedOutputPath = mdPath;
       console.log('✓ Markdown created');
     }
