@@ -117,6 +117,14 @@ function mergeSegments(
     }
   }
 
+  // Handle case with only 1 segment (loop never executed)
+  if (segments.length === 1) {
+    merged.push({
+      timestamp: currentGroup.timestamp,
+      text: currentGroup.texts.join(' '),
+    });
+  }
+
   return merged;
 }
 
