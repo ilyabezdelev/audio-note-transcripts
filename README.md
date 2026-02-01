@@ -114,13 +114,15 @@ transcribe ~/Desktop/recording.m4a --model base --language ru --format vtt --out
 
 ```
 Options:
-  -V, --version        output the version number
-  --model <name>       Model to use (default: "large-v3-turbo")
-  --model-path <path>  Path to model file (default: ~/.whisper-models/ggml-{model}.bin)
-  --output <path>      Output file path (default: same directory as input with -transcript suffix)
-  --language <code>    Language code: ru, en, auto, etc. (default: "auto")
-  --format <type>      Output format: markdown, vtt (default: "markdown")
-  -h, --help           display help for command
+  -V, --version               output the version number
+  --model <name>              Model to use (default: "large-v3-turbo")
+  --model-path <path>         Path to model file (default: ~/.whisper-models/ggml-{model}.bin)
+  --output <path>             Output file path (default: same directory as input with -transcript suffix)
+  --language <code>           Language code: ru, en, auto, etc. (default: "auto")
+  --format <type>             Output format: markdown, vtt (default: "markdown")
+  --suppress-metadata         Suppress metadata and timestamps in markdown output
+  --suppress-console-output   Suppress whisper-cpp console output during transcription
+  -h, --help                  display help for command
 ```
 
 ### Supported Audio Formats
@@ -151,7 +153,9 @@ Benchmarks on M1 MacBook Pro with 97-second audio file:
 
 ### Markdown Format (Default)
 
-Readable format with longer paragraphs (3-5 lines merged) and timestamp markers:
+Readable format with longer paragraphs (3-5 lines merged) and timestamp markers.
+
+Use `--suppress-metadata` to output only the plain text without metadata headers or timestamps:
 
 ```markdown
 # Transcript
@@ -225,6 +229,16 @@ transcribe ~/Desktop/notes.m4a --model base
 
 # Custom output location (overrides default naming)
 transcribe ~/Desktop/recording.m4a --output ~/Documents/transcripts/recording.md
+
+# Clean text output without metadata or timestamps
+transcribe ~/Desktop/recording.m4a --suppress-metadata
+# Output: Plain text paragraphs only
+
+# Quiet mode - suppress whisper-cpp console output
+transcribe ~/Desktop/recording.m4a --suppress-console-output
+
+# Both flags together for minimal output
+transcribe ~/Desktop/recording.m4a --suppress-metadata --suppress-console-output
 ```
 
 ## How It Works

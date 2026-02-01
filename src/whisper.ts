@@ -10,6 +10,7 @@ import { OutputFormat } from './types.js';
  * @param format Output format (vtt or txt for markdown)
  * @param outputDir Directory where output file should be saved (optional)
  * @param language Language code (ru, en, auto, etc.) - optional
+ * @param suppressConsoleOutput Suppress console output from whisper-cli - optional
  * @returns Path to generated output file
  */
 export async function transcribe(
@@ -17,7 +18,8 @@ export async function transcribe(
   modelPath: string,
   format: OutputFormat,
   outputDir?: string,
-  language?: string
+  language?: string,
+  suppressConsoleOutput?: boolean
 ): Promise<string> {
   // Expand ~ in model path
   const expandedModelPath = modelPath.replace(/^~/, process.env.HOME || '~');
@@ -39,8 +41,10 @@ export async function transcribe(
     whisper.stdout.on('data', (data: Buffer) => {
       const output = data.toString();
       stdoutOutput += output;
-      // Print progress to console
-      process.stdout.write(output);
+      // Print progress to console (unless suppressed)
+      if (!suppressConsoleOutput) {
+        process.stdout.write(output);
+      }
     });
 
     // Capture stderr (model loading info, progress)

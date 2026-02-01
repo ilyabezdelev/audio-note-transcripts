@@ -25,6 +25,7 @@ program
   .option('--language <code>', 'Language code (ru, en, auto)', 'auto')
   .option('--format <type>', 'Output format (markdown, vtt)', 'markdown')
   .option('--suppress-metadata', 'Suppress metadata and timestamps in markdown output')
+  .option('--suppress-console-output', 'Suppress whisper-cpp console output during transcription')
   .action(async (input, options) => {
     try {
       // Expand tilde and resolve input path to absolute path
@@ -51,6 +52,7 @@ program
         language: options.language,
         format: format,
         suppressMetadata: options.suppressMetadata,
+        suppressConsoleOutput: options.suppressConsoleOutput,
       });
 
       console.log();

@@ -140,7 +140,8 @@ export async function transcribeAudio(
       config.modelPath,
       config.format,
       tempOutputDir,
-      config.language
+      config.language,
+      config.suppressConsoleOutput
     );
     tempVttPath = vttPath; // Track for cleanup
     console.log('✓ Transcription complete');

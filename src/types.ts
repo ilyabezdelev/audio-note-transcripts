@@ -8,6 +8,7 @@ export interface TranscriptionConfig {
   language: string;
   format: OutputFormat;
   suppressMetadata?: boolean;
+  suppressConsoleOutput?: boolean;
 }
 
 export interface TranscriptionResult {
