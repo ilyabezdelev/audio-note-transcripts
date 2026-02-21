@@ -1,28 +1,16 @@
 import { spawn } from 'child_process';
 import { rename } from 'fs/promises';
 import { basename, join } from 'path';
-import { OutputFormat } from './types.js';
+import { homedir } from 'os';
 
-/**
- * Transcribe WAV file using whisper-cli
- * @param wavPath Path to 16kHz mono WAV file
- * @param modelPath Path to Whisper model file
- * @param format Output format (vtt or txt for markdown)
- * @param outputDir Directory where output file should be saved (optional)
- * @param language Language code (ru, en, auto, etc.) - optional
- * @param suppressConsoleOutput Suppress console output from whisper-cli - optional
- * @returns Path to generated output file
- */
 export async function transcribe(
   wavPath: string,
   modelPath: string,
-  format: OutputFormat,
   outputDir?: string,
   language?: string,
   suppressConsoleOutput?: boolean
 ): Promise<string> {
-  // Expand ~ in model path
-  const expandedModelPath = modelPath.replace(/^~/, process.env.HOME || '~');
+  const expandedModelPath = modelPath.replace(/^~/, homedir());
 
   return new Promise((resolve, reject) => {
     const args = ['-m', expandedModelPath, '-f', wavPath, '--output-vtt'];

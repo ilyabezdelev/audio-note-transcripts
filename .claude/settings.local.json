@@ -4,7 +4,9 @@
       "Bash(npx prettier:*)",
       "Bash(npm run format:*)",
       "Bash(ls:*)",
-      "Bash(node dist/cli.js:*)"
+      "Bash(node dist/cli.js:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

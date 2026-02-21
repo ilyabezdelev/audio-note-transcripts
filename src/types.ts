@@ -1,7 +1,6 @@
 export type OutputFormat = 'markdown' | 'vtt';
 
 export interface TranscriptionConfig {
-  inputPath: string;
   outputPath?: string;
   modelName: string;
   modelPath: string;
@@ -9,6 +8,7 @@ export interface TranscriptionConfig {
   format: OutputFormat;
   suppressMetadata?: boolean;
   suppressConsoleOutput?: boolean;
+  log?: (message: string) => void;
 }
 
 export interface TranscriptionResult {

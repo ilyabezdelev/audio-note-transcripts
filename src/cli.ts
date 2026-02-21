@@ -4,10 +4,14 @@ import { Command } from 'commander';
 import { transcribeAudio } from './transcribe.js';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const program = new Command();
 
-function expandTilde(filePath: string): string {
+export function expandTilde(filePath: string): string {
   if (filePath.startsWith('~')) {
     return filePath.replace(/^~/, homedir());
   }
@@ -17,7 +21,7 @@ function expandTilde(filePath: string): string {
 program
   .name('transcribe')
   .description('Transcribe audio files to markdown or VTT format using whisper.cpp')
-  .version('0.1.0')
+  .version(version)
   .argument('<input>', 'Input audio file path')
   .option('--model <name>', 'Model to use', 'large-v3-turbo')
   .option('--model-path <path>', 'Path to model file')
@@ -45,7 +49,6 @@ program
 
       // Call transcription pipeline
       const result = await transcribeAudio(inputPath, {
-        inputPath: inputPath,
         outputPath: outputPath,
         modelName: options.model,
         modelPath: modelPath,
@@ -53,6 +56,7 @@ program
         format: format,
         suppressMetadata: options.suppressMetadata,
         suppressConsoleOutput: options.suppressConsoleOutput,
+        log: console.log,
       });
 
       console.log();
@@ -77,4 +81,10 @@ program
     }
   });
 
-program.parse();
+const isDirectRun =
+  process.argv[1] &&
+  import.meta.url.endsWith(process.argv[1].replace(/.*\//, '/'));
+
+if (isDirectRun) {
+  program.parse();
+}

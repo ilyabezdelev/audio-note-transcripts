@@ -9,6 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -25,6 +27,9 @@
   ],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
   "bugs": {
     "url": "https://github.com/ilyabezdelev/audio-note-transcripts/issues"
   },
@@ -38,6 +43,7 @@
     "@types/node": "^25.0.3",
     "prettier": "^3.7.4",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

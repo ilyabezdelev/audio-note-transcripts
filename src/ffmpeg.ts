@@ -1,6 +1,22 @@
-import { spawn } from 'child_process';
+import { spawn, execFile } from 'child_process';
 import { mkdir } from 'fs/promises';
 import { dirname } from 'path';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
+
+export async function getAudioDuration(filePath: string): Promise<number> {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v',
+    'quiet',
+    '-print_format',
+    'json',
+    '-show_format',
+    filePath,
+  ]);
+  const data = JSON.parse(stdout);
+  return parseFloat(data.format?.duration ?? '0');
+}
 
 /**
  * Convert audio file to 16kHz mono WAV format required by whisper-cli

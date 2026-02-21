@@ -4,7 +4,7 @@ import { TranscriptMetadata } from './types.js';
 /**
  * Format duration in seconds as HH:MM:SS
  */
-function formatDuration(seconds: number): string {
+export function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
@@ -15,7 +15,7 @@ function formatDuration(seconds: number): string {
 /**
  * Format date as YYYY-MM-DD HH:MM:SS
  */
-function formatDate(date: Date): string {
+export function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
@@ -29,7 +29,7 @@ function formatDate(date: Date): string {
 /**
  * Get language name from language code
  */
-function getLanguageName(code: string): string {
+export function getLanguageName(code: string): string {
   const languages: { [key: string]: string } = {
     auto: 'Auto-detect',
     en: 'English',
@@ -53,7 +53,7 @@ function getLanguageName(code: string): string {
  * 00:00:00.000 --> 00:00:05.280
  * Text here
  */
-function parseVttFile(content: string): Array<{ timestamp: string; text: string }> {
+export function parseVttFile(content: string): Array<{ timestamp: string; text: string }> {
   const lines = content.split('\n');
   const segments: Array<{ timestamp: string; text: string }> = [];
 
@@ -84,45 +84,23 @@ function parseVttFile(content: string): Array<{ timestamp: string; text: string 
  * Merge short segments into longer paragraphs (3-5 lines minimum)
  * Groups consecutive segments until reaching minimum line count
  */
-function mergeSegments(
+export function mergeSegments(
   segments: Array<{ timestamp: string; text: string }>,
   minLines: number = 3
 ): Array<{ timestamp: string; text: string }> {
   if (segments.length === 0) return [];
 
   const merged: Array<{ timestamp: string; text: string }> = [];
-  let currentGroup = {
-    timestamp: segments[0].timestamp,
-    texts: [segments[0].text],
-  };
+  let i = 0;
 
-  for (let i = 1; i < segments.length; i++) {
-    currentGroup.texts.push(segments[i].text);
-
-    // Check if we have enough lines or if this is the last segment
-    if (currentGroup.texts.length >= minLines || i === segments.length - 1) {
-      merged.push({
-        timestamp: currentGroup.timestamp,
-        text: currentGroup.texts.join(' '),
-      });
-
-      // Start new group if not at the end
-      if (i < segments.length - 1) {
-        currentGroup = {
-          timestamp: segments[i + 1].timestamp,
-          texts: [segments[i + 1].text],
-        };
-        i++; // Skip the next segment since we already added it
-      }
-    }
-  }
-
-  // Handle case with only 1 segment (loop never executed)
-  if (segments.length === 1) {
+  while (i < segments.length) {
+    const end = Math.min(i + minLines, segments.length);
+    const group = segments.slice(i, end);
     merged.push({
-      timestamp: currentGroup.timestamp,
-      text: currentGroup.texts.join(' '),
+      timestamp: group[0].timestamp,
+      text: group.map((s) => s.text).join(' '),
     });
+    i = end;
   }
 
   return merged;
