@@ -4,10 +4,13 @@ import { alphanumeric } from 'nanoid-dictionary';
 import { basename, dirname, extname, join } from 'path';
 import { convertToWav, getAudioDuration } from './ffmpeg.js';
 import { convertToMarkdown } from './markdown.js';
+import { convertToPodcastJson } from './podcast-json.js';
+import { convertToSrt } from './srt.js';
 import { TranscriptionConfig, TranscriptionResult } from './types.js';
 import { checkFfmpeg, checkModel, checkWhisperCli, validateInputFile } from './validate.js';
 import { addMetadata, getAudioCreationDate } from './vtt.js';
 import { transcribe as runWhisper } from './whisper.js';
+import { convertToWordJson } from './word-json.js';
 
 function generateShortId(): string {
   const nanoid = customAlphabet(alphanumeric, 6);
@@ -56,12 +59,20 @@ async function cleanupTempFiles(
   }
 }
 
+const OUTPUT_EXTENSIONS: Record<string, string> = {
+  markdown: '.md',
+  vtt: '.vtt',
+  'podcast-json': '.json',
+  srt: '.srt',
+  'word-json': '.json',
+};
+
 async function resolveOutputPath(
   inputPath: string,
   processedOutputPath: string,
   config: TranscriptionConfig
 ): Promise<string> {
-  const outputExtension = config.format === 'vtt' ? '.vtt' : '.md';
+  const outputExtension = OUTPUT_EXTENSIONS[config.format] || '.md';
 
   if (config.outputPath) {
     if (config.outputPath.endsWith('/')) {
@@ -92,7 +103,6 @@ export async function transcribeAudio(
   const startTime = Date.now();
   const log = config.log ?? (() => {});
   let tempWavPath: string | null = null;
-  let tempVttPath: string | null = null;
 
   try {
     // Step 1: Validate dependencies
@@ -126,16 +136,18 @@ export async function transcribeAudio(
       wavPath = tempWavPath;
     }
 
-    // Step 4: Run whisper.cpp (always creates VTT)
+    // Step 4: Run whisper.cpp
+    const isWordLevel = config.format === 'word-json';
     log(`Transcribing with ${config.modelName} model (language: ${config.language})...`);
-    const vttPath = await runWhisper(
+    const whisperOutputPath = await runWhisper(
       wavPath,
       config.modelPath,
       inputDir,
       config.language,
-      config.suppressConsoleOutput
+      config.suppressConsoleOutput,
+      isWordLevel
     );
-    tempVttPath = vttPath;
+    let tempWhisperOutput: string | null = whisperOutputPath;
     log('✓ Transcription complete');
 
     // Step 5: Add metadata and convert format if needed
@@ -149,19 +161,37 @@ export async function transcribeAudio(
       transcribedAt: new Date(),
     };
 
-    let processedOutputPath = vttPath;
+    let processedOutputPath = whisperOutputPath;
 
     if (config.format === 'vtt') {
       log('Adding metadata to VTT...');
-      await addMetadata(vttPath, metadata);
+      await addMetadata(whisperOutputPath, metadata);
       log('✓ Metadata added');
-      tempVttPath = null;
-    } else {
+      tempWhisperOutput = null;
+    } else if (config.format === 'markdown') {
       log('Converting to markdown format...');
-      const mdPath = vttPath.replace(/\.vtt$/, '.md');
-      await convertToMarkdown(vttPath, mdPath, metadata, 3, config.suppressMetadata);
+      const mdPath = whisperOutputPath.replace(/\.vtt$/, '.md');
+      await convertToMarkdown(whisperOutputPath, mdPath, metadata, 3, config.suppressMetadata);
       processedOutputPath = mdPath;
       log('✓ Markdown created');
+    } else if (config.format === 'podcast-json') {
+      log('Converting to podcast JSON format...');
+      const jsonPath = whisperOutputPath.replace(/\.vtt$/, '.json');
+      await convertToPodcastJson(whisperOutputPath, jsonPath);
+      processedOutputPath = jsonPath;
+      log('✓ Podcast JSON created');
+    } else if (config.format === 'srt') {
+      log('Converting to SRT format...');
+      const srtPath = whisperOutputPath.replace(/\.vtt$/, '.srt');
+      await convertToSrt(whisperOutputPath, srtPath);
+      processedOutputPath = srtPath;
+      log('✓ SRT created');
+    } else if (config.format === 'word-json') {
+      log('Converting to word-level JSON format...');
+      const wordJsonPath = whisperOutputPath.replace(/\.json$/, '-words.json');
+      await convertToWordJson(whisperOutputPath, wordJsonPath, audioDuration, config.language);
+      processedOutputPath = wordJsonPath;
+      log('✓ Word-level JSON created');
     }
 
     // Step 6: Move output to final location
@@ -171,7 +201,7 @@ export async function transcribeAudio(
     log(`✓ Output saved to: ${finalOutputPath}`);
 
     // Step 7: Clean up temporary files
-    await cleanupTempFiles([tempWavPath, tempVttPath], log);
+    await cleanupTempFiles([tempWavPath, tempWhisperOutput], log);
 
     const processingTime = (Date.now() - startTime) / 1000;
     log(`Success! Processing time: ${processingTime.toFixed(2)}s`);
@@ -184,7 +214,7 @@ export async function transcribeAudio(
       format: config.format,
     };
   } catch (error) {
-    await cleanupTempFiles([tempWavPath, tempVttPath]);
+    await cleanupTempFiles([tempWavPath]);
     throw error;
   }
 }

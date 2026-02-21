@@ -7,6 +7,7 @@ import {
   formatDate,
   getLanguageName,
   parseVttFile,
+  parseTimestamp,
   mergeSegments,
   convertToMarkdown,
 } from './markdown.js';
@@ -64,6 +65,28 @@ describe('getLanguageName', () => {
   });
 });
 
+describe('parseTimestamp', () => {
+  it('parses zero timestamp', () => {
+    expect(parseTimestamp('00:00:00.000')).toBe(0);
+  });
+
+  it('parses milliseconds', () => {
+    expect(parseTimestamp('00:00:00.720')).toBeCloseTo(0.72);
+  });
+
+  it('parses minutes and seconds', () => {
+    expect(parseTimestamp('00:01:37.000')).toBe(97);
+  });
+
+  it('parses hours', () => {
+    expect(parseTimestamp('01:30:00.000')).toBe(5400);
+  });
+
+  it('parses full timestamp', () => {
+    expect(parseTimestamp('01:02:03.456')).toBeCloseTo(3723.456);
+  });
+});
+
 describe('parseVttFile', () => {
   it('parses standard multi-segment VTT', () => {
     const vtt = `WEBVTT
@@ -77,8 +100,8 @@ Today we talk about transcription.
 `;
     const segments = parseVttFile(vtt);
     expect(segments).toEqual([
-      { timestamp: '00:00:00.720', text: 'Hello and welcome.' },
-      { timestamp: '00:00:05.280', text: 'Today we talk about transcription.' },
+      { startTime: '00:00:00.720', endTime: '00:00:05.280', text: 'Hello and welcome.' },
+      { startTime: '00:00:05.280', endTime: '00:00:10.440', text: 'Today we talk about transcription.' },
     ]);
   });
 
@@ -97,7 +120,11 @@ Just one line.
 `;
     const segments = parseVttFile(vtt);
     expect(segments).toHaveLength(1);
-    expect(segments[0]).toEqual({ timestamp: '00:00:00.000', text: 'Just one line.' });
+    expect(segments[0]).toEqual({
+      startTime: '00:00:00.000',
+      endTime: '00:00:03.000',
+      text: 'Just one line.',
+    });
   });
 
   it('joins multi-line cue text', () => {
@@ -150,53 +177,53 @@ describe('mergeSegments', () => {
   });
 
   it('returns single segment as-is', () => {
-    const segments = [{ timestamp: '00:00:00.000', text: 'Hello' }];
+    const segments = [{ startTime: '00:00:00.000', endTime: '00:00:01.000', text: 'Hello' }];
     const result = mergeSegments(segments, 3);
-    expect(result).toEqual([{ timestamp: '00:00:00.000', text: 'Hello' }]);
+    expect(result).toEqual([{ startTime: '00:00:00.000', endTime: '00:00:01.000', text: 'Hello' }]);
   });
 
   it('merges 2 segments when minLines=3', () => {
     const segments = [
-      { timestamp: '00:00:00.000', text: 'Line one.' },
-      { timestamp: '00:00:02.000', text: 'Line two.' },
+      { startTime: '00:00:00.000', endTime: '00:00:02.000', text: 'Line one.' },
+      { startTime: '00:00:02.000', endTime: '00:00:04.000', text: 'Line two.' },
     ];
     const result = mergeSegments(segments, 3);
-    expect(result).toEqual([{ timestamp: '00:00:00.000', text: 'Line one. Line two.' }]);
+    expect(result).toEqual([
+      { startTime: '00:00:00.000', endTime: '00:00:04.000', text: 'Line one. Line two.' },
+    ]);
   });
 
   it('groups exactly at minLines boundary', () => {
     const segments = [
-      { timestamp: '00:00:00.000', text: 'A' },
-      { timestamp: '00:00:01.000', text: 'B' },
-      { timestamp: '00:00:02.000', text: 'C' },
+      { startTime: '00:00:00.000', endTime: '00:00:01.000', text: 'A' },
+      { startTime: '00:00:01.000', endTime: '00:00:02.000', text: 'B' },
+      { startTime: '00:00:02.000', endTime: '00:00:03.000', text: 'C' },
     ];
     const result = mergeSegments(segments, 3);
-    expect(result).toEqual([{ timestamp: '00:00:00.000', text: 'A B C' }]);
+    expect(result).toEqual([{ startTime: '00:00:00.000', endTime: '00:00:03.000', text: 'A B C' }]);
   });
 
   it('handles 7 segments with minLines=3', () => {
     const segments = Array.from({ length: 7 }, (_, i) => ({
-      timestamp: `00:00:0${i}.000`,
+      startTime: `00:00:0${i}.000`,
+      endTime: `00:00:0${i + 1}.000`,
       text: `Word${i}`,
     }));
     const result = mergeSegments(segments, 3);
 
-    // Should produce groups: first group has 3 segments, second has 3, third has remainder
     expect(result.length).toBeGreaterThanOrEqual(2);
-    // All original text should be present
     const allText = result.map((s) => s.text).join(' ');
     for (let i = 0; i < 7; i++) {
       expect(allText).toContain(`Word${i}`);
     }
-    // First group timestamp should be from first segment
-    expect(result[0].timestamp).toBe('00:00:00.000');
+    expect(result[0].startTime).toBe('00:00:00.000');
   });
 
   it('keeps segments separate with minLines=1', () => {
     const segments = [
-      { timestamp: '00:00:00.000', text: 'A' },
-      { timestamp: '00:00:01.000', text: 'B' },
-      { timestamp: '00:00:02.000', text: 'C' },
+      { startTime: '00:00:00.000', endTime: '00:00:01.000', text: 'A' },
+      { startTime: '00:00:01.000', endTime: '00:00:02.000', text: 'B' },
+      { startTime: '00:00:02.000', endTime: '00:00:03.000', text: 'C' },
     ];
     const result = mergeSegments(segments, 1);
     expect(result).toHaveLength(3);
@@ -207,7 +234,8 @@ describe('mergeSegments', () => {
 
   it('does not duplicate or drop any text', () => {
     const segments = Array.from({ length: 10 }, (_, i) => ({
-      timestamp: `00:00:${i.toString().padStart(2, '0')}.000`,
+      startTime: `00:00:${i.toString().padStart(2, '0')}.000`,
+      endTime: `00:00:${(i + 1).toString().padStart(2, '0')}.000`,
       text: `Segment${i}`,
     }));
     const result = mergeSegments(segments, 3);
@@ -215,7 +243,6 @@ describe('mergeSegments', () => {
     for (let i = 0; i < 10; i++) {
       expect(allText).toContain(`Segment${i}`);
     }
-    // Count occurrences — each should appear exactly once
     for (let i = 0; i < 10; i++) {
       const matches = allText.match(new RegExp(`Segment${i}`, 'g'));
       expect(matches).toHaveLength(1);
@@ -224,21 +251,18 @@ describe('mergeSegments', () => {
 
   it('handles 4 segments with minLines=3', () => {
     const segments = [
-      { timestamp: '00:00:00.000', text: 'A' },
-      { timestamp: '00:00:01.000', text: 'B' },
-      { timestamp: '00:00:02.000', text: 'C' },
-      { timestamp: '00:00:03.000', text: 'D' },
+      { startTime: '00:00:00.000', endTime: '00:00:01.000', text: 'A' },
+      { startTime: '00:00:01.000', endTime: '00:00:02.000', text: 'B' },
+      { startTime: '00:00:02.000', endTime: '00:00:03.000', text: 'C' },
+      { startTime: '00:00:03.000', endTime: '00:00:04.000', text: 'D' },
     ];
     const result = mergeSegments(segments, 3);
-    // First group: A B C (3 lines), second group: D (remainder)
-    // OR first group: A B C D (all merged) — depends on implementation
-    // Either way, no text should be lost
     const allText = result.map((s) => s.text).join(' ');
     expect(allText).toContain('A');
     expect(allText).toContain('B');
     expect(allText).toContain('C');
     expect(allText).toContain('D');
-    expect(result[0].timestamp).toBe('00:00:00.000');
+    expect(result[0].startTime).toBe('00:00:00.000');
   });
 });
 
@@ -282,7 +306,6 @@ It is a very interesting topic.
     return readFile(mdPath, 'utf-8');
   }
 
-  // Clean up after each test that creates temp dirs
   const cleanup = async () => {
     if (tmpDir) await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   };

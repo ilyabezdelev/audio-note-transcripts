@@ -1,4 +1,4 @@
-export type OutputFormat = 'markdown' | 'vtt';
+export type OutputFormat = 'markdown' | 'vtt' | 'podcast-json' | 'srt' | 'word-json';
 
 export interface TranscriptionConfig {
   outputPath?: string;
@@ -29,6 +29,32 @@ export interface TranscriptMetadata {
 }
 
 export interface TranscriptSegment {
-  timestamp: string;
+  startTime: string;
+  endTime: string;
   text: string;
+}
+
+export interface PodcastTranscriptSegment {
+  startTime: number;
+  endTime: number;
+  body: string;
+}
+
+export interface PodcastTranscript {
+  version: string;
+  segments: PodcastTranscriptSegment[];
+}
+
+export interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
+  probability?: number;
+}
+
+export interface WordLevelTranscript {
+  version: string;
+  duration: number;
+  language: string;
+  words: WordTimestamp[];
 }

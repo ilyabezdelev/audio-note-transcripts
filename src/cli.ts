@@ -20,14 +20,14 @@ export function expandTilde(filePath: string): string {
 
 program
   .name('transcribe')
-  .description('Transcribe audio files to markdown or VTT format using whisper.cpp')
+  .description('Transcribe audio files using whisper.cpp')
   .version(version)
   .argument('<input>', 'Input audio file path')
   .option('--model <name>', 'Model to use', 'large-v3-turbo')
   .option('--model-path <path>', 'Path to model file')
   .option('--output <path>', 'Output file or directory path')
   .option('--language <code>', 'Language code (ru, en, auto)', 'auto')
-  .option('--format <type>', 'Output format (markdown, vtt)', 'markdown')
+  .option('--format <type>', 'Output format (markdown, vtt, podcast-json, srt, word-json)', 'markdown')
   .option('--suppress-metadata', 'Suppress metadata and timestamps in markdown output')
   .option('--suppress-console-output', 'Suppress whisper-cpp console output during transcription')
   .action(async (input, options) => {
@@ -41,10 +41,10 @@ program
       // Expand tilde and resolve output path if provided
       const outputPath = options.output ? resolve(expandTilde(options.output)) : undefined;
 
-      // Validate format
+      const validFormats = ['markdown', 'vtt', 'podcast-json', 'srt', 'word-json'];
       const format = options.format.toLowerCase();
-      if (format !== 'markdown' && format !== 'vtt') {
-        throw new Error(`Invalid format: ${format}. Must be 'markdown' or 'vtt'.`);
+      if (!validFormats.includes(format)) {
+        throw new Error(`Invalid format: ${format}. Must be one of: ${validFormats.join(', ')}`);
       }
 
       // Call transcription pipeline

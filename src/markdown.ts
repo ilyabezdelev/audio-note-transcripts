@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { TranscriptMetadata } from './types.js';
+import { TranscriptMetadata, TranscriptSegment } from './types.js';
 
 /**
  * Format duration in seconds as HH:MM:SS
@@ -47,32 +47,31 @@ export function getLanguageName(code: string): string {
   return languages[code] || code;
 }
 
-/**
- * Parse VTT file and extract timestamped segments
- * Format:
- * 00:00:00.000 --> 00:00:05.280
- * Text here
- */
-export function parseVttFile(content: string): Array<{ timestamp: string; text: string }> {
+export function parseTimestamp(ts: string): number {
+  const [h, m, rest] = ts.split(':');
+  const [s, ms] = rest.split('.');
+  return parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s) + parseInt(ms) / 1000;
+}
+
+export function parseVttFile(content: string): TranscriptSegment[] {
   const lines = content.split('\n');
-  const segments: Array<{ timestamp: string; text: string }> = [];
+  const segments: TranscriptSegment[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Match timestamp line: 00:00:00.000 --> 00:00:05.280
     const match = line.match(/^(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})$/);
     if (match) {
       const startTime = match[1];
-      // Get the text from the next line(s) until we hit an empty line
+      const endTime = match[2];
       const textLines: string[] = [];
-      i++; // Move to next line
+      i++;
       while (i < lines.length && lines[i].trim() !== '') {
         textLines.push(lines[i].trim());
         i++;
       }
       const text = textLines.join(' ');
       if (text) {
-        segments.push({ timestamp: startTime, text });
+        segments.push({ startTime, endTime, text });
       }
     }
   }
@@ -80,24 +79,21 @@ export function parseVttFile(content: string): Array<{ timestamp: string; text: 
   return segments;
 }
 
-/**
- * Merge short segments into longer paragraphs (3-5 lines minimum)
- * Groups consecutive segments until reaching minimum line count
- */
 export function mergeSegments(
-  segments: Array<{ timestamp: string; text: string }>,
+  segments: TranscriptSegment[],
   minLines: number = 3
-): Array<{ timestamp: string; text: string }> {
+): TranscriptSegment[] {
   if (segments.length === 0) return [];
 
-  const merged: Array<{ timestamp: string; text: string }> = [];
+  const merged: TranscriptSegment[] = [];
   let i = 0;
 
   while (i < segments.length) {
     const end = Math.min(i + minLines, segments.length);
     const group = segments.slice(i, end);
     merged.push({
-      timestamp: group[0].timestamp,
+      startTime: group[0].startTime,
+      endTime: group[group.length - 1].endTime,
       text: group.map((s) => s.text).join(' '),
     });
     i = end;
@@ -158,7 +154,7 @@ export async function convertToMarkdown(
 
     // Add merged segments with timestamps
     for (const segment of mergedSegments) {
-      markdown.push(`**[${segment.timestamp}]**`);
+      markdown.push(`**[${segment.startTime}]**`);
       markdown.push('');
       markdown.push(segment.text);
       markdown.push('');

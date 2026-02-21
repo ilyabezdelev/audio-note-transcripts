@@ -11,6 +11,9 @@ Convert voice memos (M4A from iPhone), voice messages (OGG from Telegram), and M
 - **Multiple formats** - M4A, OGG, MP3, WAV support
 - **Markdown output** - Default format with longer, readable paragraphs (3-5 lines)
 - **VTT support** - Optional WebVTT format with precise timestamps
+- **Podcast JSON** - Podcasting 2.0 transcript format with float-second timestamps
+- **SRT subtitles** - SubRip format for broad compatibility
+- **Word-level JSON** - Per-word timestamps and confidence scores via whisper.cpp
 - **Configurable models** - Choose between speed (base) or accuracy (large-v3-turbo)
 - **Language support** - Auto-detect or specify language (en, ru, etc.)
 
@@ -103,6 +106,15 @@ transcribe ~/Desktop/recording.m4a --language en
 # Output VTT format instead of markdown
 transcribe ~/Desktop/recording.m4a --format vtt
 
+# Podcast-compatible JSON transcript
+transcribe ~/Desktop/recording.m4a --format podcast-json
+
+# SRT subtitles
+transcribe ~/Desktop/recording.m4a --format srt
+
+# Word-level timestamps with confidence scores
+transcribe ~/Desktop/recording.m4a --format word-json
+
 # Custom output location
 transcribe ~/Desktop/recording.m4a --output ~/Documents/transcript.md
 
@@ -119,7 +131,7 @@ Options:
   --model-path <path>         Path to model file (default: ~/.whisper-models/ggml-{model}.bin)
   --output <path>             Output file path (default: same directory as input with -transcript suffix)
   --language <code>           Language code: ru, en, auto, etc. (default: "auto")
-  --format <type>             Output format: markdown, vtt (default: "markdown")
+  --format <type>             Output format: markdown, vtt, podcast-json, srt, word-json (default: "markdown")
   --suppress-metadata         Suppress metadata and timestamps in markdown output
   --suppress-console-output   Suppress whisper-cpp console output during transcription
   -h, --help                  display help for command
@@ -204,6 +216,59 @@ Engine: whisper.cpp
  With precise timestamps for each segment.
 ```
 
+### Podcast JSON Format
+
+Podcasting 2.0 compatible transcript with float-second timestamps:
+
+```json
+{
+  "version": "1.0.0",
+  "segments": [
+    {
+      "startTime": 0.72,
+      "endTime": 5.28,
+      "body": "Hello and welcome to the podcast."
+    },
+    {
+      "startTime": 5.28,
+      "endTime": 10.44,
+      "body": "Today we're talking about transcription."
+    }
+  ]
+}
+```
+
+### SRT Format
+
+SubRip subtitles with sequential numbering:
+
+```srt
+1
+00:00:00,720 --> 00:00:05,280
+Hello and welcome to the podcast.
+
+2
+00:00:05,280 --> 00:00:10,440
+Today we're talking about transcription.
+```
+
+### Word-Level JSON Format
+
+Per-word timestamps with confidence scores, useful for word-level highlighting and karaoke-style playback:
+
+```json
+{
+  "version": "1.0.0",
+  "duration": 97.17,
+  "language": "en",
+  "words": [
+    { "word": "Hello", "start": 0.72, "end": 1.04, "probability": 0.95 },
+    { "word": "and", "start": 1.04, "end": 1.18, "probability": 0.98 },
+    { "word": "welcome", "start": 1.18, "end": 1.56, "probability": 0.92 }
+  ]
+}
+```
+
 ## Examples
 
 ```bash
@@ -272,8 +337,8 @@ transcribe ~/Desktop/video.mp4
 
 **Output file naming:**
 
-- Default: `{filename}-transcript.{md|vtt}` (e.g., `recording-transcript.md`)
-- If that file already exists: `{filename}-transcript-{id}.{md|vtt}` (e.g., `recording-transcript-a1b2c3.md`)
+- Default: `{filename}-transcript.{md|vtt|json|srt}` (e.g., `recording-transcript.md`)
+- If that file already exists: `{filename}-transcript-{id}.{ext}` (e.g., `recording-transcript-a1b2c3.md`)
 - This prevents accidental overwrites when transcribing the same file multiple times
 - Custom output path (via `--output`) always overwrites if the file exists
 
@@ -298,7 +363,7 @@ npm run build
 npm run format
 
 # Run tests
-npm run build && node dist/test-pipeline.js
+npm test
 ```
 
 ## Troubleshooting

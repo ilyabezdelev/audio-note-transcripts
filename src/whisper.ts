@@ -8,12 +8,19 @@ export async function transcribe(
   modelPath: string,
   outputDir?: string,
   language?: string,
-  suppressConsoleOutput?: boolean
+  suppressConsoleOutput?: boolean,
+  wordLevel?: boolean
 ): Promise<string> {
   const expandedModelPath = modelPath.replace(/^~/, homedir());
 
   return new Promise((resolve, reject) => {
-    const args = ['-m', expandedModelPath, '-f', wavPath, '--output-vtt'];
+    const args = ['-m', expandedModelPath, '-f', wavPath];
+
+    if (wordLevel) {
+      args.push('--output-json', '--max-len', '1');
+    } else {
+      args.push('--output-vtt');
+    }
 
     // Add language flag if specified (and not 'auto')
     if (language && language !== 'auto') {
@@ -43,24 +50,21 @@ export async function transcribe(
     whisper.on('close', async (code) => {
       if (code === 0) {
         try {
-          // whisper-cli always creates VTT file as <input>.vtt
-          const vttPath = `${wavPath}.vtt`;
+          const outputExt = wordLevel ? '.json' : '.vtt';
+          const outputFile = `${wavPath}${outputExt}`;
 
-          // If outputDir is specified, move the file there
           if (outputDir) {
-            const filename = basename(vttPath);
+            const filename = basename(outputFile);
             const targetPath = join(outputDir, filename);
-
-            // Move VTT file to output directory
-            await rename(vttPath, targetPath);
+            await rename(outputFile, targetPath);
             resolve(targetPath);
           } else {
-            resolve(vttPath);
+            resolve(outputFile);
           }
         } catch (error) {
           reject(
             new Error(
-              `Transcription completed but failed to move VTT file: ${
+              `Transcription completed but failed to move output file: ${
                 error instanceof Error ? error.message : error
               }`
             )
