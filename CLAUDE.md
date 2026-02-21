@@ -22,6 +22,10 @@ Audio note transcripts - an on-device audio transcription system that converts v
 - CLI: Commander for argument parsing
 - Audio conversion: ffmpeg
 
+## Planning Docs Hygiene
+
+Planning documents live in `planning/` under `feature/`, `chore/`, and `code-reviews/` subdirectories. Once a plan has been fully implemented and committed, move it to the `done/` subfolder within its category (e.g. `planning/feature/done/`). Only in-progress or upcoming plans should remain in the top-level category folders.
+
 ## Detailed Documentation
 
 For complete project documentation, implementation phases, architecture details, and usage examples, see:
