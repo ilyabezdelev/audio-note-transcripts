@@ -5,6 +5,9 @@ import { transcribeAudio } from './transcribe.js';
 import { resolve } from 'path';
 import { homedir } from 'os';
 import { createRequire } from 'module';
+import { VALID_FORMATS, FORMAT_DESCRIPTIONS, OutputFormat } from './types.js';
+import { getInstalledModels, formatFileSize } from './models.js';
+import { runInit } from './init.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -23,37 +26,30 @@ program
   .description('Transcribe audio files using whisper.cpp')
   .version(version)
   .argument('<input>', 'Input audio file path')
-  .option('--model <name>', 'Model to use', 'large-v3-turbo')
+  .option('--model <name>', 'Model name (see available models below)', 'large-v3-turbo')
   .option('--model-path <path>', 'Path to model file')
   .option('--output <path>', 'Output file or directory path')
   .option('--language <code>', 'Language code (ru, en, auto)', 'auto')
-  .option('--format <type>', 'Output format (markdown, vtt, podcast-json, srt, word-json)', 'markdown')
+  .option('--format <type>', 'Output format (see formats below)', 'markdown')
   .option('--suppress-metadata', 'Suppress metadata and timestamps in markdown output')
   .option('--suppress-console-output', 'Suppress whisper-cpp console output during transcription')
   .action(async (input, options) => {
     try {
-      // Expand tilde and resolve input path to absolute path
       const inputPath = resolve(expandTilde(input));
-
-      // Determine model path
       const modelPath = options.modelPath || `~/.whisper-models/ggml-${options.model}.bin`;
-
-      // Expand tilde and resolve output path if provided
       const outputPath = options.output ? resolve(expandTilde(options.output)) : undefined;
 
-      const validFormats = ['markdown', 'vtt', 'podcast-json', 'srt', 'word-json'];
       const format = options.format.toLowerCase();
-      if (!validFormats.includes(format)) {
-        throw new Error(`Invalid format: ${format}. Must be one of: ${validFormats.join(', ')}`);
+      if (!VALID_FORMATS.includes(format as OutputFormat)) {
+        throw new Error(`Invalid format: ${format}. Must be one of: ${VALID_FORMATS.join(', ')}`);
       }
 
-      // Call transcription pipeline
       const result = await transcribeAudio(inputPath, {
         outputPath: outputPath,
         modelName: options.model,
         modelPath: modelPath,
         language: options.language,
-        format: format,
+        format: format as OutputFormat,
         suppressMetadata: options.suppressMetadata,
         suppressConsoleOutput: options.suppressConsoleOutput,
         log: console.log,
@@ -80,6 +76,42 @@ program
       process.exit(1);
     }
   });
+
+program
+  .command('init')
+  .description('Check dependencies and download whisper models')
+  .action(async () => {
+    try {
+      await runInit();
+    } catch (error) {
+      console.error();
+      console.error('Init failed:', error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+program.addHelpText('after', () => {
+  const models = getInstalledModels();
+  let text = '\nAvailable models (in ~/.whisper-models/):';
+  if (models.length === 0) {
+    text += '\n  (none installed — run "transcribe init" to download)';
+  } else {
+    for (const m of models) {
+      const isDefault = m.name === 'large-v3-turbo';
+      const size = formatFileSize(m.sizeBytes);
+      text += `\n  ${m.name.padEnd(22)} ${size}${isDefault ? '  (default)' : ''}`;
+    }
+  }
+
+  text += '\n\nOutput formats:';
+  for (const fmt of VALID_FORMATS) {
+    const desc = FORMAT_DESCRIPTIONS[fmt];
+    const isDefault = fmt === 'markdown';
+    text += `\n  ${fmt.padEnd(22)} ${desc}${isDefault ? ' (default)' : ''}`;
+  }
+  text += '\n';
+  return text;
+});
 
 if (!process.env.VITEST) {
   if (process.argv.length <= 2) {

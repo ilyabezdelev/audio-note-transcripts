@@ -34,22 +34,28 @@ brew install whisper-cpp ffmpeg
 
 ### 2. Download Whisper Model
 
+The easiest way is the interactive setup command:
+
 ```bash
-# Create models directory
+transcribe init
+```
+
+This checks dependencies and lets you choose which models to download with a progress bar.
+
+Alternatively, download manually:
+
+```bash
 mkdir -p ~/.whisper-models
 
 # Download large-v3-turbo model (recommended, 1.5GB)
 # From: https://huggingface.co/ggerganov/whisper.cpp/tree/main
 # Download ggml-large-v3-turbo.bin to ~/.whisper-models/
-
-# Optional: Download base model for faster processing (141MB)
-# Download ggml-base.bin to ~/.whisper-models/
 ```
 
 Direct download links:
 
-- [ggml-large-v3-turbo.bin](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin) (1.5GB)
-- [ggml-base.bin](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin) (141MB)
+- [ggml-large-v3-turbo.bin](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin) (1.5GB, recommended)
+- [ggml-base.bin](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin) (141MB, fast)
 
 ### 3. Install CLI Tool
 
@@ -74,9 +80,7 @@ npm link
 # Test the command
 transcribe --help
 
-# Should output:
-# Usage: transcribe [options] <input>
-# Transcribe audio files to VTT format using whisper.cpp
+# Should show help with available models and formats
 ```
 
 ## Usage
@@ -131,7 +135,7 @@ Options:
   --model-path <path>         Path to model file (default: ~/.whisper-models/ggml-{model}.bin)
   --output <path>             Output file path (default: same directory as input with -transcript suffix)
   --language <code>           Language code: ru, en, auto, etc. (default: "auto")
-  --format <type>             Output format: markdown, vtt, podcast-json, srt, word-json (default: "markdown")
+  --format <type>             Output format (see formats below) (default: "markdown")
   --suppress-metadata         Suppress metadata and timestamps in markdown output
   --suppress-console-output   Suppress whisper-cpp console output during transcription
   -h, --help                  display help for command

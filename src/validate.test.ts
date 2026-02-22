@@ -46,7 +46,7 @@ describe('checkModel', () => {
 
   it('error message includes download instructions', async () => {
     await expect(checkModel('/nonexistent/model.bin')).rejects.toThrow(
-      'Please download a Whisper model'
+      'transcribe init'
     );
   });
 });

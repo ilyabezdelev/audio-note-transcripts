@@ -1,5 +1,15 @@
 export type OutputFormat = 'markdown' | 'vtt' | 'podcast-json' | 'srt' | 'word-json';
 
+export const VALID_FORMATS: OutputFormat[] = ['markdown', 'vtt', 'podcast-json', 'srt', 'word-json'];
+
+export const FORMAT_DESCRIPTIONS: Record<OutputFormat, string> = {
+  markdown: 'Merged paragraphs with optional metadata',
+  vtt: 'WebVTT with timestamps',
+  'podcast-json': 'Podcasting 2.0 transcript JSON',
+  srt: 'SubRip subtitle format',
+  'word-json': 'Word-level timestamps JSON',
+};
+
 export interface TranscriptionConfig {
   outputPath?: string;
   modelName: string;

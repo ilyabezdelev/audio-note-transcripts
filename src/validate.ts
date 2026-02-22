@@ -47,7 +47,7 @@ export async function checkModel(modelPath: string): Promise<void> {
   } catch (error) {
     throw new Error(
       `Model file not found or not readable: ${modelPath}\n` +
-        'Please download a Whisper model:\n' +
+        'Run "transcribe init" to download whisper models, or download manually:\n' +
         '  mkdir -p ~/.whisper-models\n' +
         '  # Download from: https://huggingface.co/ggerganov/whisper.cpp/tree/main\n' +
         '  # Save to: ~/.whisper-models/ggml-large-v3-turbo.bin'

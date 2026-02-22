@@ -8,7 +8,7 @@ import { convertToPodcastJson } from './podcast-json.js';
 import { convertToSrt } from './srt.js';
 import { TranscriptionConfig, TranscriptionResult } from './types.js';
 import { checkFfmpeg, checkModel, checkWhisperCli, validateInputFile } from './validate.js';
-import { addMetadata, getAudioCreationDate } from './vtt.js';
+import { getAudioCreationDate } from './vtt.js';
 import { transcribe as runWhisper } from './whisper.js';
 import { convertToWordJson } from './word-json.js';
 
@@ -164,9 +164,6 @@ export async function transcribeAudio(
     let processedOutputPath = whisperOutputPath;
 
     if (config.format === 'vtt') {
-      log('Adding metadata to VTT...');
-      await addMetadata(whisperOutputPath, metadata);
-      log('✓ Metadata added');
       tempWhisperOutput = null;
     } else if (config.format === 'markdown') {
       log('Converting to markdown format...');
