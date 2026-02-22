@@ -81,10 +81,9 @@ program
     }
   });
 
-const isDirectRun =
-  process.argv[1] &&
-  import.meta.url.endsWith(process.argv[1].replace(/.*\//, '/'));
-
-if (isDirectRun) {
+if (!process.env.VITEST) {
+  if (process.argv.length <= 2) {
+    program.help();
+  }
   program.parse();
 }

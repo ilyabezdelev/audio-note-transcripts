@@ -6,7 +6,8 @@
       "Bash(ls:*)",
       "Bash(node dist/cli.js:*)",
       "Bash(npx vitest:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
